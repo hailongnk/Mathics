@@ -198,10 +198,15 @@ class Simplify(Builtin):
     def apply(self, expr, evaluation):
         'Simplify[expr_]'
 
+        print("Simplify --> expr:", expr)
         sympy_expr = expr.to_sympy()
         if sympy_expr is None:
             return
+        print("Simplify --> sympy_expr:", sympy_expr)
         sympy_result = sympy.simplify(sympy_expr)
+        print("Simplify --> sympy_result:", sympy_result)
+        final_result = from_sympy(sympy_result)
+        print("Simplify --> final_result", final_result)
         return from_sympy(sympy_result)
 
 

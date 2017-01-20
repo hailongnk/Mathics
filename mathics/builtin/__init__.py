@@ -9,7 +9,7 @@ from mathics.builtin import (
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
     graphics, graphics3d, image, inout, integer, linalg, lists, logic, manipulate, natlang, numbertheory,
     numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
-    specialfunctions, scoping, strings, structure, system, tensors, xmlformat)
+    specialfunctions, scoping, strings, structure, system, tensors, xmlformat, togetherplus)
 
 from mathics.builtin.base import (
     Builtin, SympyObject, BoxConstruct, Operator, PatternObject)
@@ -21,7 +21,7 @@ modules = [
     comparison, control, datentime, diffeqns, evaluation, exptrig, functional,
     graphics, graphics3d, image, inout, integer, linalg, lists, logic, manipulate, natlang, numbertheory,
     numeric, options, patterns, plot, physchemdata, randomnumbers, recurrence,
-    specialfunctions, scoping, strings, structure, system, tensors, xmlformat]
+    specialfunctions, scoping, strings, structure, system, tensors, xmlformat, togetherplus]
 
 if ENABLE_FILES_MODULE:
     from mathics.builtin import files, importexport
