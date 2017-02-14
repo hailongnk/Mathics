@@ -623,6 +623,54 @@ class HexidecimalCharacter(Builtin):
     """
 
 
+class AlternativeDigitQ(Builtin):
+    """
+    <dl>
+    <dt>'AlternativeDigitQ[$string$]'
+        yields 'True' if all the characters in the $string$ are digits, and yields 'False' otherwise. 
+    </dl>
+
+    >> AlternativeDigitQ["9"]
+     = True
+
+    >> AlternativeDigitQ["a"]
+     = False
+
+    >> AlternativeDigitQ["01001101011000010111010001101000011010010110001101110011"]
+     = True
+
+    >> AlternativeDigitQ["-123456789"]
+     = False
+    
+    #> AlternativeDigitQ[""]
+     = True
+
+    #> AlternativeDigitQ["."]
+     = False
+
+    #> AlternativeDigitQ[1==2]
+     : String or list of strings expected at position 1 in AlternativeDigitQ[False].
+     = AlternativeDigitQ[False]
+
+    #> AlternativeDigitQ[a=1]
+     : String or list of strings expected at position 1 in AlternativeDigitQ[1].
+     = AlternativeDigitQ[1]
+    """
+    
+    messages = {
+        'strse':  'String or list of strings expected at position `1` in `2`.',
+    }
+    
+    def apply(self, string, evaluation):
+        'AlternativeDigitQ[string_]'
+        py_s = string.get_string_value()
+        if py_s is None:
+            return evaluation.message('AlternativeDigitQ', 'strse', Integer(1),
+                                      Expression('AlternativeDigitQ', string))
+        exp = Expression('StringMatchQ', string, Expression('System`RepeatedNull', Symbol('DigitCharacter')))
+        return exp
+
+
 class DigitQ(Builtin):
     """
     <dl>
