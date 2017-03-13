@@ -332,6 +332,161 @@ class Factor(Builtin):
         return from_sympy(result)
 
 
+class FactorTermsList(Builtin):
+    """
+    <dl>
+    <dt>'FactorTermsList[poly]'
+        <dd>returns a list in which the first element is the overall numerical factor in $poly$,
+        and the second element is the polynomial with the overall factor removed.
+    <dt>'FactorTermsList[poly,{x1, x2, ...}]'
+        <dd>returns a list of factors of $poly$.
+        The first element in the list is the overall numerical factor.
+        The second element is a factor that does not depend on any of the $xi$.
+        Subsequent elements are factors which depend on progressively more of the $xi$.
+    </dl>
+
+    >> FactorTermsList[2 x^2 - 2]
+     = {2, -1 + x ^ 2}
+    >> FactorTermsList[x^2 - 2 x + 1]
+     = {1, 1 - 2 x + x ^ 2}
+    #> FactorTermsList[2 x^2 - 2, x]
+     = {2, 1, -1 + x ^ 2}
+    
+    f = 3 (-1 + 2 x) (-1 + y) (1 - a)
+    #> f = 3 (-1 + 2 x) (-1 + y) (1 - a)
+     = 3 (-1 + 2 x) (-1 + y) (1 - a)
+    >> FactorTermsList[f]
+     = {-3, -1 + a - 2 a x - a y + 2 x + y - 2 x y + 2 a x y}
+    >> FactorTermsList[f, x]
+     = {-3, 1 - a - y + a y, -1 + 2 x}
+    >> FactorTermsList[f, y]
+     = {-3, 1 - a - 2 x + 2 a x, -1 + y}
+    >> FactorTermsList[f, {x, y}]
+     = {-3, -1 + a, -1 + y, -1 + 2 x}
+    >> FactorTermsList[f, {y, x}]
+     = {-3, -1 + a, -1 + 2 x, -1 + y}
+    
+    #> FactorTermsList[f/c]
+     = {-3, -1 / c + a / c - 2 a x / c - a y / c + 2 x / c + y / c - 2 x y / c + 2 a x y / c}
+    #> FactorTermsList[f/c, x] == FactorTermsList[f/c, {x, y}]
+     = True
+    
+    g = Sin[x]*Cos[y]*(1 - 2 a)
+    #> g = Sin[x]*Cos[y]*(1 - 2 a)
+     = Cos[y] (1 - 2 a) Sin[x]
+    #> FactorTermsList[g]
+     = {-1, 2 a Cos[y] Sin[x] - Cos[y] Sin[x]}
+    #> FactorTermsList[g, x]
+     = {-1, -Cos[y] Sin[x] + 2 a Cos[y] Sin[x]}
+    #> FactorTermsList[g, x] == FactorTermsList[g, y] == FactorTermsList[g, {x, y}]
+     = True
+    
+    # # # # --> can be done by construct factor_list(Poly(, gens)), e.g: factor_list(Poly(6*y * (1 - b) * a**x), (y, b, a**x))
+    # # v = 3 * y * (1 - b) a^x
+    # # #> v = 3 * y * (1 - b) a^x
+     # # = 3 y (1 - b) a ^ x
+    # # #> FactorTermsList[v]
+     # # = {-3, -a ^ x y + a ^ x b y}
+    # # #> FactorTermsList[v, x]
+     # # = {-3, -a ^ x y + a ^ x b y}
+    # # #> FactorTermsList[v, y]
+     # # = {-3, -a ^ x + a ^ x b, y}
+     
+    #> FactorTermsList[7]
+     = {7, 1}
+    #> FactorTermsList[0]
+     = {1, 0}
+    #> FactorTermsList[-3]
+     = {-3, 1}
+    #> FactorTermsList[7, {y, x}]
+     = {7, 1}
+    #> FactorTermsList[7, x]
+     = {7, 1}
+    #> FactorTermsList[(2 x - 1) (1 + a), {c, d}]
+     = {1, -1 - a + 2 x + 2 a x}
+    #> FactorTermsList[(2 x - 1) (1 + a), {c, x}]
+     = {1, 1 + a, -1 + 2 x, 1}
+    #> FactorTermsList[(2 x - 1) (1 + a), {}] == FactorTermsList[(2 x - 1) (1 + a)] == FactorTermsList[(2 x - 1) (1 + a),]
+     = True
+    """
+    
+    rules = {
+        'FactorTermsList[expr_]': 'FactorTermsList[expr, {}]',
+        'FactorTermsList[expr_, var_]': 'FactorTermsList[expr, {var}]',
+    }
+    
+    # def apply(self, expr, evaluation):
+        # 'FactorTermsList[expr_]'
+        # print("calling with nothing")
+        # return self.apply_list(expr, Expression('List'), evaluation)
+    
+    # def apply_var(self, expr, var, evaluation):
+        # 'FactorTermsList[expr_, var_]'
+        # print("calling with 1 var")
+        # return self.apply_list(expr, Expression('List', var), evaluation)
+    
+
+    def apply_list(self, expr, vars, evaluation):
+        'FactorTermsList[expr_, vars_List]'
+        # print("calling list")
+        
+        if expr == Integer('0'):
+            return Expression('List', Integer(1), Integer(0))
+        
+        # print("expr", expr)
+        # print("vars", vars)
+        sympy_expr = sympy.together(expr.to_sympy())
+        sympy_vars = [x.to_sympy() for x in vars.leaves]
+        
+        result = []
+        try:
+            from sympy import factor, factor_list
+            numer, denom = sympy_expr.as_numer_denom()
+            if denom == 1:
+                # print("denom 1")
+                
+                # 1st element
+                num_coeff, num_polys = factor_list(numer)
+                result.append(num_coeff)
+                numer = factor(numer) / num_coeff
+                
+                if not sympy_vars:
+                    print("no var")
+                    result.append(sympy.expand(numer))
+                elif len(sympy_vars) == 1:
+                    print("1 var")
+                    # num_coeff, num_polys = factor_list(numer, sympy_vars[0])
+                    num_coeff, num_polys = factor_list(numer, *[x for x in sympy_vars])
+                    result.append(sympy.expand(num_coeff))
+                    # numer = factor(numer) / num_coeff
+                    
+                    # the last one
+                    numer = numer / num_coeff
+                    result.append(sympy.expand(numer))
+                else:
+                    print("multi vars")
+                    # 2nd element (term does not contain any variable)
+                    num_coeff, num_polys = factor_list(numer, *[x for x in sympy_vars])
+                    result.append(sympy.expand(num_coeff))
+                    # numer = factor(numer) / num_coeff
+                    
+                    # rest elements
+                    for x in sympy_vars:
+                        numer = numer / num_coeff
+                        num_coeff, num_polys = factor_list(numer, x)
+                        result.append(sympy.expand(num_coeff))
+                        # numer = numer / num_coeff
+            else:
+                print("fractional")
+                num_coeff, num_polys = factor_list(numer)
+                den_coeff, den_polys = factor_list(denom)
+                result = [num_coeff / den_coeff, sympy.expand(factor(numer)/num_coeff / (factor(denom)/den_coeff))]
+                pass
+        except sympy.PolynomialError:
+            return expr
+        return Expression('List', *[from_sympy(i) for i in result])
+
+
 class Apart(Builtin):
     """
     <dl>
