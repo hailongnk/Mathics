@@ -408,6 +408,11 @@ class FactorTermsList(Builtin):
      = {1, 1 + a, -1 + 2 x, 1}
     #> FactorTermsList[(2 x - 1) (1 + a), {}] == FactorTermsList[(2 x - 1) (1 + a)] == FactorTermsList[(2 x - 1) (1 + a),]
      = True
+    
+    #> FactorTermsList[x]
+     = {1, x}
+    #> FactorTermsList[x,]
+     = {1, x}
     """
     
     rules = {
@@ -415,37 +420,24 @@ class FactorTermsList(Builtin):
         'FactorTermsList[expr_, var_]': 'FactorTermsList[expr, {var}]',
     }
     
-    # def apply(self, expr, evaluation):
-        # 'FactorTermsList[expr_]'
-        # print("calling with nothing")
-        # return self.apply_list(expr, Expression('List'), evaluation)
+    messages = {
+        'poly': '`1` is not a polynomial.',
+    }
     
-    # def apply_var(self, expr, var, evaluation):
-        # 'FactorTermsList[expr_, var_]'
-        # print("calling with 1 var")
-        # return self.apply_list(expr, Expression('List', var), evaluation)
-    
-
     def apply_list(self, expr, vars, evaluation):
         'FactorTermsList[expr_, vars_List]'
-        # print("calling list")
-        
         if expr == Integer('0'):
             return Expression('List', Integer(1), Integer(0))
         
-        # print("expr", expr)
-        # print("vars", vars)
         sympy_expr = sympy.together(expr.to_sympy())
         sympy_vars = [x.to_sympy() for x in vars.leaves]
         
         result = []
+        numer, denom = sympy_expr.as_numer_denom()
         try:
             from sympy import factor, factor_list
-            numer, denom = sympy_expr.as_numer_denom()
             if denom == 1:
-                # print("denom 1")
-                
-                # 1st element
+                # Get numerical part
                 num_coeff, num_polys = factor_list(numer)
                 result.append(num_coeff)
                 numer = factor(numer) / num_coeff
@@ -455,10 +447,8 @@ class FactorTermsList(Builtin):
                     result.append(sympy.expand(numer))
                 elif len(sympy_vars) == 1:
                     print("1 var")
-                    # num_coeff, num_polys = factor_list(numer, sympy_vars[0])
                     num_coeff, num_polys = factor_list(numer, *[x for x in sympy_vars])
                     result.append(sympy.expand(num_coeff))
-                    # numer = factor(numer) / num_coeff
                     
                     # the last one
                     numer = numer / num_coeff
@@ -468,14 +458,12 @@ class FactorTermsList(Builtin):
                     # 2nd element (term does not contain any variable)
                     num_coeff, num_polys = factor_list(numer, *[x for x in sympy_vars])
                     result.append(sympy.expand(num_coeff))
-                    # numer = factor(numer) / num_coeff
                     
                     # rest elements
                     for x in sympy_vars:
                         numer = numer / num_coeff
                         num_coeff, num_polys = factor_list(numer, x)
                         result.append(sympy.expand(num_coeff))
-                        # numer = numer / num_coeff
             else:
                 print("fractional")
                 num_coeff, num_polys = factor_list(numer)
@@ -483,7 +471,10 @@ class FactorTermsList(Builtin):
                 result = [num_coeff / den_coeff, sympy.expand(factor(numer)/num_coeff / (factor(denom)/den_coeff))]
                 pass
         except sympy.PolynomialError:
-            return expr
+            result.append(sympy.expand(numer))
+            evaluation.message(self.get_name(), 'poly', expr)
+            # return Expression('List', *[from_sympy(i) for i in result])
+        
         return Expression('List', *[from_sympy(i) for i in result])
 
 
